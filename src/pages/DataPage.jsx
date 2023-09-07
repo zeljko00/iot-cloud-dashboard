@@ -57,6 +57,140 @@ export const DataPage = () => {
   const [errorMsg, setErrorMsg] = useState("")
 
   const navigate = useNavigate();
+
+  const handleTempData=(data)=>{
+    const graphData = data.temperatureData.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    });
+    const currentTemp = graphData[graphData.length - 1].value;
+    const avgTemp =
+      graphData.reduce((init, b) => {
+        return init + b.value;
+      }, 0) / graphData.length;
+    const maxTemp = graphData
+      .map((a) => a.value)
+      .reduce((a, b) => {
+        return Math.max(a, b);
+      });
+    const maxTime = graphData.filter((a) => {
+      return a.value === maxTemp;
+    })[0].time;
+    const maxPerc = maxTemp / avgTemp;
+    const currentPerc = currentTemp / avgTemp;
+    let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1
+    if (data.deviceStats.length > 0) {
+      collectedData = data.deviceStats.reduce((init, b) => {
+        return init + b.tempDataBytes;
+      }, 0);
+      usedData = data.deviceStats.reduce((init, b) => {
+        return init + b.tempDataBytesForwarded;
+      }, 0);
+      requests = data.deviceStats.reduce((init, b) => {
+        return init + b.tempDataRequests;
+      }, 0);
+      reductionPerc = usedData / collectedData;
+    }
+    const tempDataObj = {
+      graphData,
+      currentTemp,
+      currentPerc,
+      avgTemp,
+      maxTemp,
+      maxTime,
+      maxPerc,
+      collectedData,
+      usedData,
+      reductionPerc,
+      requests,
+    };
+    return tempDataObj;
+  }
+  const handleLoadData=(data)=>{
+    const graphData = data.loadData.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    });
+    const currentLoad = graphData[graphData.length - 1].value;
+    const avgLoad =
+      graphData.reduce((init, b) => {
+        return init + b.value;
+      }, 0) / graphData.length;
+    const sumLoad = graphData.reduce((init, b) => {
+      return init + b.value;
+    }, 0);
+    const sumPerc = sumLoad / avgLoad;
+    const currentPerc = currentLoad / avgLoad;
+    let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
+    if (data.deviceStats.length > 0) {
+      collectedData = data.deviceStats.reduce((init, b) => {
+        return init + b.loadDataBytes;
+      }, 0);
+      usedData = data.deviceStats.reduce((init, b) => {
+        return init + b.loadDataBytesForwarded;
+      }, 0);
+      requests = data.deviceStats.reduce((init, b) => {
+        return init + b.loadDataRequests;
+      }, 0);
+      reductionPerc = usedData / collectedData;
+    }
+    const loadDataObj = {
+      graphData,
+      currentLoad,
+      currentPerc,
+      avgLoad,
+      sumLoad,
+      sumPerc,
+      collectedData,
+      usedData,
+      reductionPerc,
+      requests,
+    };
+    return loadDataObj;
+  }
+
+  const handleFuelData=(data)=>{
+    const graphData = data.fuelData.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    });
+    const lastCriticalFuel = graphData[graphData.length - 1].value;
+    const lastCriticalTime = graphData[graphData.length - 1].time;
+    const minFuel = graphData
+      .map((a) => a.value)
+      .reduce((a, b) => {
+        return Math.min(a, b);
+      });
+    const mins = graphData.filter((a) => {
+      return a.value === minFuel;
+    });
+    let empty = 0;
+    if (minFuel === 0) empty = mins.length;
+    const minTime = mins[mins.length - 1].time;
+    let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
+    if (data.deviceStats.length > 0) {
+      collectedData = data.deviceStats.reduce((init, b) => {
+        return init + b.fuelDataBytes;
+      }, 0);
+      usedData = data.deviceStats.reduce((init, b) => {
+        return init + b.fuelDataBytesForwarded;
+      }, 0);
+      requests = data.deviceStats.reduce((init, b) => {
+        return init + b.fuelDataRequests;
+      }, 0);
+      reductionPerc = usedData / collectedData;
+    }
+    const fuelDataObj = {
+      graphData,
+      lastCriticalFuel,
+      lastCriticalTime,
+      minFuel,
+      minTime,
+      collectedData,
+      usedData,
+      reductionPerc,
+      requests,
+      empty,
+    };
+    return fuelDataObj;
+  }
   useEffect(() => {
     if (!sessionStorage.getItem("jwt") || sessionStorage.getItem("jwt") === "" || !sessionStorage.getItem("device") || sessionStorage.getItem("device") === "")
       navigate("/iot-platform/login");
@@ -71,139 +205,19 @@ export const DataPage = () => {
 
 
         if (res.data.temperatureData.length > 0) {
-          const graphData = res.data.temperatureData.sort((a, b) => {
-            return a.time.localeCompare(b.time);
-          });
-          const currentTemp = graphData[graphData.length - 1].value;
-          const avgTemp =
-            graphData.reduce((init, b) => {
-              return init + b.value;
-            }, 0) / graphData.length;
-          const maxTemp = graphData
-            .map((a) => a.value)
-            .reduce((a, b) => {
-              return Math.max(a, b);
-            });
-          const maxTime = graphData.filter((a) => {
-            return a.value === maxTemp;
-          })[0].time;
-          const maxPerc = maxTemp / avgTemp;
-          const currentPerc = currentTemp / avgTemp;
-          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1
-          if (res.data.deviceStats.length > 0) {
-            collectedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.tempDataBytes;
-            }, 0);
-            usedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.tempDataBytesForwarded;
-            }, 0);
-            requests = res.data.deviceStats.reduce((init, b) => {
-              return init + b.tempDataRequests;
-            }, 0);
-            reductionPerc = usedData / collectedData;
-          }
-          const tempDataObj = {
-            graphData,
-            currentTemp,
-            currentPerc,
-            avgTemp,
-            maxTemp,
-            maxTime,
-            maxPerc,
-            collectedData,
-            usedData,
-            reductionPerc,
-            requests,
-          };
+          const tempDataObj=handleTempData(res.data)
           console.log(tempDataObj);
           setTempData(tempDataObj);
         }
 
         if (res.data.loadData.length > 0) {
-          const graphData = res.data.loadData.sort((a, b) => {
-            return a.time.localeCompare(b.time);
-          });
-          const currentLoad = graphData[graphData.length - 1].value;
-          const avgLoad =
-            graphData.reduce((init, b) => {
-              return init + b.value;
-            }, 0) / graphData.length;
-          const sumLoad = graphData.reduce((init, b) => {
-            return init + b.value;
-          }, 0);
-          const sumPerc = sumLoad / avgLoad;
-          const currentPerc = currentLoad / avgLoad;
-          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
-          if (res.data.deviceStats.length > 0) {
-            collectedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.loadDataBytes;
-            }, 0);
-            usedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.loadDataBytesForwarded;
-            }, 0);
-            requests = res.data.deviceStats.reduce((init, b) => {
-              return init + b.loadDataRequests;
-            }, 0);
-            reductionPerc = usedData / collectedData;
-          }
-          const loadDataObj = {
-            graphData,
-            currentLoad,
-            currentPerc,
-            avgLoad,
-            sumLoad,
-            sumPerc,
-            collectedData,
-            usedData,
-            reductionPerc,
-            requests,
-          };
+          const loadDataObj=handleLoadData(res.data)
           console.log(loadDataObj);
           setLoadData(loadDataObj);
         }
 
         if (res.data.fuelData.length > 0) {
-          const graphData = res.data.fuelData.sort((a, b) => {
-            return a.time.localeCompare(b.time);
-          });
-          const lastCriticalFuel = graphData[graphData.length - 1].value;
-          const lastCriticalTime = graphData[graphData.length - 1].time;
-          const minFuel = graphData
-            .map((a) => a.value)
-            .reduce((a, b) => {
-              return Math.min(a, b);
-            });
-          const mins = graphData.filter((a) => {
-            return a.value === minFuel;
-          });
-          let empty = 0;
-          if (minFuel === 0) empty = mins.length;
-          const minTime = mins[mins.length - 1].time;
-          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
-          if (res.data.deviceStats.length > 0) {
-            collectedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.fuelDataBytes;
-            }, 0);
-            usedData = res.data.deviceStats.reduce((init, b) => {
-              return init + b.fuelDataBytesForwarded;
-            }, 0);
-            requests = res.data.deviceStats.reduce((init, b) => {
-              return init + b.fuelDataRequests;
-            }, 0);
-            reductionPerc = usedData / collectedData;
-          }
-          const fuelDataObj = {
-            graphData,
-            lastCriticalFuel,
-            lastCriticalTime,
-            minFuel,
-            minTime,
-            collectedData,
-            usedData,
-            reductionPerc,
-            requests,
-            empty,
-          };
+         const fuelDataObj=handleFuelData(res.data)
           console.log(fuelDataObj);
           setFuelData(fuelDataObj);
         }
