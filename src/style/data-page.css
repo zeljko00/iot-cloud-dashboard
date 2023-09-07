@@ -5,7 +5,7 @@
     background-color: #f2f4f5;
 }
 .logout-btn{
-    position: absolute;
+    position: absolute !important;
     top: 20px;
     right: 25px;
 }

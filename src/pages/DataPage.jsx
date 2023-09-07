@@ -25,13 +25,11 @@ import DashboardCard from "../components/DashboardCard";
 import StatsCard from "../components/StatsCard";
 
 const getPath = (x, y, width, height) => {
-  return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${
-    y + height / 3
-  }
+  return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3
+    }
   ${x + width / 2}, ${y}
-  C${x + width / 2},${y + height / 3} ${x + (2 * width) / 3},${y + height} ${
-    x + width
-  }, ${y + height}
+  C${x + width / 2},${y + height / 3} ${x + (2 * width) / 3},${y + height} ${x + width
+    }, ${y + height}
   Z`;
 };
 
@@ -64,7 +62,9 @@ export const DataPage = () => {
       })
       .then((res) => {
         console.log(res);
-        {
+
+
+        if (res.data.temperatureData.length > 0) {
           const graphData = res.data.temperatureData.sort((a, b) => {
             return a.time.localeCompare(b.time);
           });
@@ -83,16 +83,19 @@ export const DataPage = () => {
           })[0].time;
           const maxPerc = maxTemp / avgTemp;
           const currentPerc = currentTemp / avgTemp;
-          const collectedData = res.data.deviceStats.reduce((a, b) => {
-            return a.tempDataBytes + b.tempDataBytes;
-          });
-          const usedData = res.data.deviceStats.reduce((init, b) => {
-            return init + b.tempDataBytesForwarded;
-          }, 0);
-          const requests = res.data.deviceStats.reduce((init, b) => {
-            return init + b.tempDataRequests;
-          }, 0);
-          const reductionPerc = usedData / collectedData;
+          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1
+          if (res.data.deviceStats.length > 0) {
+            collectedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.tempDataBytes;
+            },0);
+            usedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.tempDataBytesForwarded;
+            }, 0);
+            requests = res.data.deviceStats.reduce((init, b) => {
+              return init + b.tempDataRequests;
+            }, 0);
+            reductionPerc = usedData / collectedData;
+          }
           const tempDataObj = {
             graphData,
             currentTemp,
@@ -111,7 +114,7 @@ export const DataPage = () => {
           setTempData(tempDataObj);
         }
 
-        {
+        if (res.data.loadData.length > 0) {
           const graphData = res.data.loadData.sort((a, b) => {
             return a.time.localeCompare(b.time);
           });
@@ -125,16 +128,19 @@ export const DataPage = () => {
           }, 0);
           const sumPerc = sumLoad / avgLoad;
           const currentPerc = currentLoad / avgLoad;
-          const collectedData = res.data.deviceStats.reduce((init, b) => {
-            return init + b.loadDataBytes;
-          }, 0);
-          const usedData = res.data.deviceStats.reduce((init, b) => {
-            return init + b.loadDataBytesForwarded;
-          }, 0);
-          const requests = res.data.deviceStats.reduce((init, b) => {
-            return init + b.loadDataRequests;
-          }, 0);
-          const reductionPerc = usedData / collectedData;
+          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
+          if (res.data.deviceStats.length>0) {
+            collectedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.loadDataBytes;
+            }, 0);
+            usedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.loadDataBytesForwarded;
+            }, 0);
+            requests = res.data.deviceStats.reduce((init, b) => {
+              return init + b.loadDataRequests;
+            }, 0);
+            reductionPerc = usedData / collectedData;
+          }
           const loadDataObj = {
             graphData,
             currentLoad,
@@ -152,7 +158,7 @@ export const DataPage = () => {
           setLoadData(loadDataObj);
         }
 
-        {
+        if (res.data.fuelData.length > 0) {
           const graphData = res.data.fuelData.sort((a, b) => {
             return a.time.localeCompare(b.time);
           });
@@ -169,17 +175,19 @@ export const DataPage = () => {
           let empty = 0;
           if (minFuel === 0) empty = mins.length;
           const minTime = mins[mins.length - 1].time;
-
-          const collectedData = res.data.deviceStats.reduce((init, b) => {
-            return init + b.fuelDataBytes;
-          }, 0);
-          const usedData = res.data.deviceStats.reduce((init, b) => {
-            return init + b.fuelDataBytesForwarded;
-          }, 0);
-          const requests = res.data.deviceStats.reduce((init, b) => {
-            return init + b.fuelDataRequests;
-          }, 0);
-          const reductionPerc = usedData / collectedData;
+          let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
+          if (res.data.deviceStats.length > 0) {
+            collectedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.fuelDataBytes;
+            }, 0);
+            usedData = res.data.deviceStats.reduce((init, b) => {
+              return init + b.fuelDataBytesForwarded;
+            }, 0);
+            requests = res.data.deviceStats.reduce((init, b) => {
+              return init + b.fuelDataRequests;
+            }, 0);
+            reductionPerc = usedData / collectedData;
+          }
           const fuelDataObj = {
             graphData,
             lastCriticalFuel,
@@ -402,7 +410,7 @@ export const DataPage = () => {
           />
           <DashboardCard
             title="Empty fuel tank"
-            value={fuelData ? "X" + fuelData.empty : "Unknown"}
+            value={fuelData ? "x" + fuelData.empty : "Unknown"}
             valueColor="green-value"
             subtitle={
               fuelData

@@ -30,8 +30,8 @@
 .pie-area{
     margin: 5px;
     text-align: center;
-    margin-top: 20px;
-    margin-bottom: 12px;
+    margin-top: 15px;
+    margin-bottom: 10px;
     width: calc(100% - 10px);
     height: 170px;
 }
