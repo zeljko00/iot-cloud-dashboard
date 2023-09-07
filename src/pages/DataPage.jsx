@@ -28,24 +28,10 @@ import MuiAlert from "@mui/material/Alert";
 import { over } from "stompjs";
 import SocketJS from "sockjs-client";
 
-const getPath = (x, y, width, height) => {
-  return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3
-    }
-  ${x + width / 2}, ${y}
-  C${x + width / 2},${y + height / 3} ${x + (2 * width) / 3},${y + height} ${x + width
-    }, ${y + height}
-  Z`;
-};
-
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 
-const TriangleBar = (props) => {
-  const { fill, x, y, width, height } = props;
-
-  return <path d={getPath(x, y, width, height)} stroke="none" fill={fill} />;
-};
 const colors = ["#ffc658", "#82ca9d"];
 
 export const DataPage = () => {
@@ -53,12 +39,35 @@ export const DataPage = () => {
   const [tempData, setTempData] = useState(null);
   const [loadData, setLoadData] = useState(null);
   const [fuelData, setFuelData] = useState(null);
+  let overallData = {}
   const [snackbar, setSnackbar] = useState(false);
   const [errorMsg, setErrorMsg] = useState("")
 
+  let lastTempTime = ""
+  let lastFuelTime = ""
+  let lastLoadTime = ""
+
   const navigate = useNavigate();
 
-  const handleTempData=(data)=>{
+  const changeTempData = (data) => {
+    if (data.temperatureData.length > 0) {
+      const tempDataObj = handleTempData(data)
+      setTempData(tempDataObj);
+    }
+  }
+  const changeLoadData = (data) => {
+    if (data.loadData.length > 0) {
+      const loadDataObj = handleLoadData(data)
+      setLoadData(loadDataObj);
+    }
+  }
+  const changeFuelData = (data) => {
+    if (data.fuelData.length > 0) {
+      const fuelDataObj = handleFuelData(data)
+      setFuelData(fuelDataObj);
+    }
+  }
+  const handleTempData = (data) => {
     const graphData = data.temperatureData.sort((a, b) => {
       return a.time.localeCompare(b.time);
     });
@@ -105,7 +114,7 @@ export const DataPage = () => {
     };
     return tempDataObj;
   }
-  const handleLoadData=(data)=>{
+  const handleLoadData = (data) => {
     const graphData = data.loadData.sort((a, b) => {
       return a.time.localeCompare(b.time);
     });
@@ -147,7 +156,7 @@ export const DataPage = () => {
     return loadDataObj;
   }
 
-  const handleFuelData=(data)=>{
+  const handleFuelData = (data) => {
     const graphData = data.fuelData.sort((a, b) => {
       return a.time.localeCompare(b.time);
     });
@@ -201,26 +210,12 @@ export const DataPage = () => {
         },
       })
       .then((res) => {
-        console.log(res);
-
-
-        if (res.data.temperatureData.length > 0) {
-          const tempDataObj=handleTempData(res.data)
-          console.log(tempDataObj);
-          setTempData(tempDataObj);
-        }
-
-        if (res.data.loadData.length > 0) {
-          const loadDataObj=handleLoadData(res.data)
-          console.log(loadDataObj);
-          setLoadData(loadDataObj);
-        }
-
-        if (res.data.fuelData.length > 0) {
-         const fuelDataObj=handleFuelData(res.data)
-          console.log(fuelDataObj);
-          setFuelData(fuelDataObj);
-        }
+        // console.log(res);
+        overallData = res.data;
+        console.log(res.data)
+        changeFuelData({fuelData: res.data.fuelData, deviceStats: res.data.deviceStats})
+        changeTempData({temperatureData: res.data.temperatureData, deviceStats: res.data.deviceStats})
+        changeLoadData({loadData: res.data.loadData, deviceStats: res.data.deviceStats})
         connect();
       })
       .catch((exc) => {
@@ -245,14 +240,64 @@ export const DataPage = () => {
     //timeout after establishing connection required from unknown reasons
     setTimeout(() => {
       // subscribing user to topic that stores active users
-      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/load", (payload) =>
-        console.log("Load:" + payload)
+      stompClient.subscribe("/devices/" + sessionStorage.getItem("device") + "/load", (payload) => {
+        const body = JSON.parse(payload.body)
+        if (body.time !== lastLoadTime) {
+          
+          try {
+            if (overallData.loadData !== null)
+              overallData.loadData.push(body)
+            else
+              overallData.loadData = [body]
+          } catch (e) {
+            overallData.loadData = [body]
+          }
+          console.log("-----------------LOAD---------------------")
+          console.log({loadData: overallData.loadData, deviceStats: overallData.deviceStats})
+          console.log("------------------------------------------")
+          changeLoadData({loadData: overallData.loadData, deviceStats: overallData.deviceStats})
+        }
+        lastLoadTime = body.time
+      }
       );
-      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/fuel_level", (payload) =>
-        console.log("Fuel:" + payload)
+      stompClient.subscribe("/devices/" + sessionStorage.getItem("device") + "/fuel_level", (payload) => {// console.log("Fuel:" + payload)
+        const body = JSON.parse(payload.body);
+        if (body.time !== lastFuelTime) {
+          try {
+            if (overallData.fuelData != null)
+              overallData.fuelData.push(body)
+            else
+              overallData.fuelData = [body]
+          } catch (e) {
+            overallData.fuelData = [body]
+          }
+          console.log("-------------------FUEL-------------------")
+          console.log({fuelData: overallData.fuelData, deviceStats: overallData.deviceStats})
+          console.log("------------------------------------------")
+          changeFuelData({fuelData: overallData.fuelData, deviceStats: overallData.deviceStats})
+        }
+        lastFuelTime = body.time
+      }
       );
-      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/temperature", (payload) =>
-        console.log("Temp:" + payload)
+      stompClient.subscribe("/devices/" + sessionStorage.getItem("device") + "/temperature", (payload) => {// console.log("Temp:" + payload)
+        const body = JSON.parse(payload.body);
+        if (body.time !== lastTempTime) {
+          
+          try {
+            if (overallData.temperatureData != null)
+              overallData.temperatureData.push(body)
+            else
+              overallData.temperatureData = [body]
+          } catch (e) {
+            overallData.temperatureData = [body]
+          }
+          console.log("------------------TEMP--------------------")
+          console.log({temperatureData: overallData.temperatureData, deviceStats: overallData.deviceStats})
+          console.log("------------------------------------------")
+          changeTempData({temperatureData: overallData.temperatureData, deviceStats: overallData.deviceStats})
+        }
+        lastTempTime = body.time
+      }
       );
     }, 100);
   };
@@ -260,8 +305,8 @@ export const DataPage = () => {
     setErrorMsg("Live data request failed!")
     setSnackbar(true)
   };
-  const connect = (user, users) => {
-    const socket = new SocketJS(conf.server_url+"/ws");
+  const connect = () => {
+    const socket = new SocketJS(conf.server_url + "/ws");
     const stompClient = over(socket);
     stompClient.connect(
       {},
@@ -321,7 +366,7 @@ export const DataPage = () => {
             subtitle="(last hour)"
             valueColor="green-value"
             value={
-              tempData != null ? tempData.avgTemp.toFixed(1) + "°C" : "Unknown"
+              tempData != null ? tempData.avgTemp.toFixed(3) + "°C" : "Unknown"
             }
             second=""
             positive={false}
