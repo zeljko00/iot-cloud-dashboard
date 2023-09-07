@@ -1,9 +1,6 @@
 import React, { useEffect } from "react";
 import axios from "axios";
-import { over } from "stompjs";
-import SocketJS from "sockjs-client";
 import Box from "@mui/material/Box";
-import FilledInput from "@mui/material/FilledInput";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import InputLabel from "@mui/material/InputLabel";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -57,6 +54,7 @@ export const LoginPage = () => {
         setFailed(false);
         const jwt = res.data;
         sessionStorage.setItem("jwt", jwt);
+        sessionStorage.setItem("device",username)
         console.log(jwt);
         navigate("/iot-platform/dashboard");
       })
@@ -74,37 +72,6 @@ export const LoginPage = () => {
 
     setSnackbar(false);
   };
-  const onConnectionEstablished = (stompClient) => {
-    //timeout after establishing connection required from unknown reasons
-    setTimeout(() => {
-      // subscribing user to topic that stores active users
-      stompClient.subscribe("/devices/gprincip/load", (payload) =>
-        console.log("Load:" + payload)
-      );
-      stompClient.subscribe("/devices/gprincip/fuel_level", (payload) =>
-        console.log("Fuel:" + payload)
-      );
-      stompClient.subscribe("/devices/gprincip/temperature", (payload) =>
-        console.log("Temp:" + payload)
-      );
-    }, 100);
-  };
-  const onError = () => {
-    // messsage
-  };
-  const connect = (user, users) => {
-    const socket = new SocketJS("http://localhost:8080/iot-cloud-platform/ws");
-    const stompClient = over(socket);
-    stompClient.connect(
-      {},
-      () => onConnectionEstablished(stompClient),
-      onError
-    );
-  };
-
-  useEffect(() => {
-    connect();
-  }, []);
 
   return (
     <div className="login-page">

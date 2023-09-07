@@ -23,6 +23,10 @@ import { useNavigate } from "react-router-dom";
 import conf from "../conf.json";
 import DashboardCard from "../components/DashboardCard";
 import StatsCard from "../components/StatsCard";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+import { over } from "stompjs";
+import SocketJS from "sockjs-client";
 
 const getPath = (x, y, width, height) => {
   return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3
@@ -33,6 +37,10 @@ const getPath = (x, y, width, height) => {
   Z`;
 };
 
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 const TriangleBar = (props) => {
   const { fill, x, y, width, height } = props;
 
@@ -41,18 +49,16 @@ const TriangleBar = (props) => {
 const colors = ["#ffc658", "#82ca9d"];
 
 export const DataPage = () => {
-  const [tempAreaChart, setTempAreaChart] = useState(true);
-  const [loadAreaChart, setLoadAreaChart] = useState(true);
-  const [fuelAreaChart, setFuelAreaChart] = useState(false);
 
   const [tempData, setTempData] = useState(null);
   const [loadData, setLoadData] = useState(null);
   const [fuelData, setFuelData] = useState(null);
-  const [statsData, setStatsData] = useState(null);
+  const [snackbar, setSnackbar] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("")
 
   const navigate = useNavigate();
   useEffect(() => {
-    if (!sessionStorage.getItem("jwt") || sessionStorage.getItem("jwt") === "")
+    if (!sessionStorage.getItem("jwt") || sessionStorage.getItem("jwt") === "" || !sessionStorage.getItem("device") || sessionStorage.getItem("device") === "")
       navigate("/iot-platform/login");
     axios
       .get(conf.server_url + `/data`, {
@@ -87,7 +93,7 @@ export const DataPage = () => {
           if (res.data.deviceStats.length > 0) {
             collectedData = res.data.deviceStats.reduce((init, b) => {
               return init + b.tempDataBytes;
-            },0);
+            }, 0);
             usedData = res.data.deviceStats.reduce((init, b) => {
               return init + b.tempDataBytesForwarded;
             }, 0);
@@ -109,7 +115,6 @@ export const DataPage = () => {
             reductionPerc,
             requests,
           };
-          console.log("result");
           console.log(tempDataObj);
           setTempData(tempDataObj);
         }
@@ -129,7 +134,7 @@ export const DataPage = () => {
           const sumPerc = sumLoad / avgLoad;
           const currentPerc = currentLoad / avgLoad;
           let collectedData = 1; let usedData = 1; let requests = 1; let reductionPerc = 1;
-          if (res.data.deviceStats.length>0) {
+          if (res.data.deviceStats.length > 0) {
             collectedData = res.data.deviceStats.reduce((init, b) => {
               return init + b.loadDataBytes;
             }, 0);
@@ -153,7 +158,6 @@ export const DataPage = () => {
             reductionPerc,
             requests,
           };
-          console.log("result");
           console.log(loadDataObj);
           setLoadData(loadDataObj);
         }
@@ -200,20 +204,72 @@ export const DataPage = () => {
             requests,
             empty,
           };
-          console.log("result");
           console.log(fuelDataObj);
           setFuelData(fuelDataObj);
         }
+        connect();
       })
       .catch((exc) => {
-        console.log(exc);
+        let msg = ""
+        if (exc.response.status === 401) msg = "Unauthorized access!";
+        else msg = "Server unreachable!"
+        setErrorMsg(msg)
+        setSnackbar(true);
       });
   }, []);
   const logout = () => {
     navigate("/iot-dashboard/login");
   };
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setSnackbar(false);
+  };
+  const onConnectionEstablished = (stompClient) => {
+    //timeout after establishing connection required from unknown reasons
+    setTimeout(() => {
+      // subscribing user to topic that stores active users
+      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/load", (payload) =>
+        console.log("Load:" + payload)
+      );
+      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/fuel_level", (payload) =>
+        console.log("Fuel:" + payload)
+      );
+      stompClient.subscribe("/devices/"+sessionStorage.getItem("device")+"/temperature", (payload) =>
+        console.log("Temp:" + payload)
+      );
+    }, 100);
+  };
+  const onError = () => {
+    setErrorMsg("Live data request failed!")
+    setSnackbar(true)
+  };
+  const connect = (user, users) => {
+    const socket = new SocketJS(conf.server_url+"/ws");
+    const stompClient = over(socket);
+    stompClient.connect(
+      {},
+      () => onConnectionEstablished(stompClient),
+      onError
+    );
+  };
   return (
     <div className="dashboard-page">
+      <Snackbar
+        open={snackbar}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {errorMsg}
+        </Alert>
+      </Snackbar>
       <Button
         variant="outlined"
         color="error"
