@@ -45,7 +45,8 @@ export const LoginPage = () => {
   const submit = () => {
     const credentials = btoa(username + ":" + password);
     axios
-      .get(conf.server_url + `/auth/login`, {
+      // .get(conf.server_url + `/auth/login`, {
+      .get(process.env.REACT_APP_API_URL + `/auth/login`, {
         headers: {
           Authorization: "Basic " + credentials,
         },
@@ -54,7 +55,7 @@ export const LoginPage = () => {
         setFailed(false);
         const jwt = res.data;
         sessionStorage.setItem("jwt", jwt);
-        sessionStorage.setItem("device",username)
+        sessionStorage.setItem("device", username);
         console.log(jwt);
         navigate("/iot-platform/dashboard");
       })

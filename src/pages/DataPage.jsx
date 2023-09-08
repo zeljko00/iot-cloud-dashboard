@@ -160,7 +160,8 @@ export const DataPage = () => {
     )
       navigate("/iot-platform/login");
     axios
-      .get(conf.server_url + `/data`, {
+      // .get(conf.server_url + `/data`, {
+      .get(process.env.REACT_APP_API_URL + `/data`, {
         headers: {
           Authorization: "Bearer " + sessionStorage.getItem("jwt"),
         },
@@ -283,7 +284,8 @@ export const DataPage = () => {
     setSnackbar(true);
   };
   const connect = () => {
-    const socket = new SocketJS(conf.server_url + "/ws");
+    // const socket = new SocketJS(conf.server_url + "/ws");
+    const socket = new SocketJS(process.env.REACT_APP_API_URL + "/ws");
     const stompClient = over(socket);
     stompClient.connect(
       {},
